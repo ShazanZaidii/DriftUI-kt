@@ -2,61 +2,54 @@ package com.example.driftui.core
 
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 
-// storage engine singleton
 object DriftStorage {
     private const val PREF_NAME = "DriftUI_Storage"
     var prefs: SharedPreferences? = null
 
     fun initialize(context: Context) {
         if (prefs == null) {
-            prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+            prefs = context.applicationContext.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         }
     }
 }
 
-// composable version for ui views
 @Composable
 inline fun <reified T> Storage(key: String, defaultValue: T): MutableState<T> {
     val context = LocalContext.current
     DriftStorage.initialize(context)
     val prefs = DriftStorage.prefs ?: return remember { mutableStateOf(defaultValue) }
 
-    // read initial value
-    val initialValue = readValue(prefs, key, defaultValue)
+    val state = remember { mutableStateOf(readValue(prefs, key, defaultValue)) }
 
-    // state holder
-    val state = remember { mutableStateOf(initialValue) }
+    // Adds true SwiftUI reactivity: Automatically recomposes if updated from another screen or ViewModel
+    DisposableEffect(key, prefs) {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, changedKey ->
+            if (key == changedKey) {
+                state.value = readValue(sharedPreferences, key, defaultValue)
+            }
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose {
+            prefs.unregisterOnSharedPreferenceChangeListener(listener)
+        }
+    }
 
-    // write back wrapper
-    return remember(state) {
+    return remember(state, prefs, key) {
         createPersistedState(state, prefs, key)
     }
 }
 
-// standard version for viewmodels and classes
 inline fun <reified T> Any.Storage(key: String, defaultValue: T): MutableState<T> {
-
-    // ensure engine is initialized in main activity
     val prefs = DriftStorage.prefs
-        ?: throw IllegalStateException("DriftStorage not initialized Call DriftStorage initialize in MainActivity")
+        ?: throw IllegalStateException("DriftStorage not initialized. Call DriftStorage.initialize() in MainActivity.")
 
-    // read initial value
-    val initialValue = readValue(prefs, key, defaultValue)
-
-    // create state without remember
-    val state = mutableStateOf(initialValue)
-
-    // return wrapper
+    val state = mutableStateOf(readValue(prefs, key, defaultValue))
     return createPersistedState(state, prefs, key)
 }
 
-// internal shared logic helpers
 inline fun <reified T> readValue(prefs: SharedPreferences, key: String, defaultValue: T): T {
     return when (defaultValue) {
         is String -> prefs.getString(key, defaultValue) as T
@@ -64,7 +57,7 @@ inline fun <reified T> readValue(prefs: SharedPreferences, key: String, defaultV
         is Boolean -> prefs.getBoolean(key, defaultValue) as T
         is Float -> prefs.getFloat(key, defaultValue) as T
         is Long -> prefs.getLong(key, defaultValue) as T
-        else -> throw IllegalArgumentException("Storage supports String Int Bool Float Long")
+        else -> throw IllegalArgumentException("Storage supports String, Int, Boolean, Float, Long")
     }
 }
 

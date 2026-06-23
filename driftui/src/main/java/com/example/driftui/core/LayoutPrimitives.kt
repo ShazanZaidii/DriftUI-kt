@@ -4,6 +4,8 @@ package com.example.driftui.core
 import android.app.Activity
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
@@ -133,7 +135,9 @@ private fun DriftNavRoot(root: @Composable () -> Unit) {
     ) {
         NavHost(
             navController = navController,
-            startDestination = "root"
+            startDestination = "root",
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
         ) {
             composable("root") {
                 root()

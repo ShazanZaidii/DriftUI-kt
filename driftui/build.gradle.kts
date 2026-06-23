@@ -46,12 +46,14 @@ dependencies {
     val ktorVersion = "3.0.0"
     val lifecycleVersion = "2.8.0"
 
-    // --- COMPOSE CORE (Standard implementation is fine for internal UI) ---
-    implementation(platform("androidx.compose:compose-bom:2025.11.00"))
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.foundation:foundation")
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.runtime:runtime")
+    // --- COMPOSE CORE ---
+    // Change these to 'api' to publish your BOM constraints to consuming apps
+    api(platform("androidx.compose:compose-bom:2025.11.00"))
+    api("androidx.compose.ui:ui")
+    api("androidx.compose.foundation:foundation")
+    api("androidx.compose.foundation:foundation-layout") // <-- Explicitly add this!
+    api("androidx.compose.material3:material3")
+    api("androidx.compose.runtime:runtime")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
     // --- UTILS & SERIALIZATION ---
@@ -110,7 +112,7 @@ afterEvaluate {
 
                 groupId = "com.example"
                 artifactId = "driftui"
-                version = "3.5.1"
+                version = "3.7.3"
             }
         }
     }
